@@ -7,7 +7,7 @@
 > **Mã kỹ thuật MITRE ATT&CK:** T1003.001 (OS Credential Dumping: LSASS Memory)
 > **Mục tiêu:** Kiểm thử khả năng phát hiện hành vi trích xuất bộ nhớ của tiến trình `lsass.exe` bằng wazuh.
 
-## 1. Tổng quan kịch bản (Overview)
+## 1. Tổng quan kịch bản
 Kẻ tấn công thường nhắm vào tiến trình `lsass.exe` để đánh cắp thông tin đăng nhập lưu trong bộ nhớ dưới dạng bản rõ hoặc hash. 
 
 Trong kịch bản này, kẻ tấn công sử dụng công cụ có sẵn của Windows là `rundll32.exe` để gọi hàm `MiniDump` từ thư viện hệ thống `comsvcs.dll`. Kỹ thuật này đặc biệt nguy hiểm vì nó không cần tải thêm bất kỳ mã độc nào từ bên ngoài , giúp né tránh sự phát hiện của các phần mềm diệt virus truyền thống.
@@ -78,7 +78,7 @@ Khi câu lệnh giả lập được kích hoạt, luồng sự kiện được 
     ![alt text](image-3.png)
 
 
-## 4. Cơ chế phát hiện tùy chỉnh (Detection Engineering)
+## 4. Cơ chế phát hiện tùy chỉnh 
 
 Do các luật mặc định dễ bị nhiễu, chiến lược giám sát đã được chuyển hướng sang giám sát hành vi sinh tệp tin (File Creation - Sysmon Event 11).
 
@@ -99,7 +99,5 @@ Luật `100011` được thiết kế để giám sát các tệp `.dmp` đượ
 </group>
 ```
 ## 5. Kết luận
-
-### Kết luận
 
 Việc dựa hoàn toàn vào các luật mặc định thường dẫn đến tình trạng báo động giả cao từ các tiến trình hệ thống như Windows Defender hay PowerShell. Việc xây dựng Local Rule dựa trên dấu hiệu tệp tin đặc trưng (`.dmp`) là phương pháp hiệu quả nhất để phát hiện kỹ thuật Dump LSASS qua `comsvcs.dll`.
