@@ -5,7 +5,7 @@
 # Báo cáo Phân tích và Phát hiện: Kỹ thuật LSASS Memory Dumping sử dụng `comsvcs.dll`
 
 > **Mã kỹ thuật MITRE ATT&CK:** T1003.001 (OS Credential Dumping: LSASS Memory)
-> **Mục tiêu:** Kiểm thử khả năng phát hiện hành vi trích xuất bộ nhớ của tiến trình `lsass.exe` bằng các thư viện hợp lệ của Windows.
+> **Mục tiêu:** Kiểm thử khả năng phát hiện hành vi trích xuất bộ nhớ của tiến trình `lsass.exe` bằng wazuh.
 
 ## 1. Tổng quan kịch bản (Overview)
 Kẻ tấn công thường nhắm vào tiến trình `lsass.exe` để đánh cắp thông tin đăng nhập lưu trong bộ nhớ dưới dạng bản rõ hoặc hash. 
