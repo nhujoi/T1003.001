@@ -94,7 +94,24 @@ Dựa trên các dấu hiệu phân tích từ Sysmon Event ID 10, một custom 
 Sau khi mô phỏng tấn công lại thì đã bắt được hành vi lsass trên wazuh
 ![alt text](./images/image-9.png)
 
-## 6. Kết luận:
+## 6. Kết luận và hướng đề xuất chống tấn công:
 Bài báo cao đã thực hiện mô phỏng thành công kỹ thuật OS Credential Dumping (T1003.001) và xây dựng được năng lực giám sát, phát hiện cảnh báo trên hệ thống Wazuh thông qua việc phân tích log Sysmon.
 
 Do giới hạn của môi trường thực nghiệm (Lab cá nhân), hệ thống không được triển khai các phần mềm doanh nghiệp như hệ thống Antivirus (AV/EDR), công cụ sao lưu (Backup Agents) hay phần mềm giám sát (Monitor). Trong môi trường thực tế, các phần mềm hợp lệ này thường xuyên phải truy cập vào bộ nhớ lsass.exe để thực thi tác vụ, dẫn đến việc Rule 100050 có thể sinh ra một lượng lớn cảnh báo giả. 
+
+
+### Đề xuất phòng chống
+#### Cấu hình bảo mật ở cấp độ Hệ điều hành 
+
+* **Kích hoạt LSA Protection:** Đây là một trong những biện pháp cơ bản và hiệu quả nhất. Khi cấu hình LSASS chạy dưới dạng Protected Process Light, Windows sẽ ngăn chặn các tiến trình không có chữ ký điện tử hợp lệ chèn mã hoặc yêu cầu quyền truy cập mức cao vào `lsass.exe`. Kẻ tấn công dùng Mimikatz thông thường sẽ bị chặn lại ngay bước này.
+* **Sử dụng Windows Defender Credential Guard:**
+    Tính năng này sử dụng công nghệ ảo hóa dựa trên phần cứng để cô lập bộ nhớ chứa thông tin xác thực. Ngay cả khi kẻ tấn công có leo thang đặc quyền lên mức SYSTEM hoặc vô hiệu hóa được các phần mềm diệt virus, chúng cũng không thể đọc được cleartext password hay NTLM hash từ vùng nhớ bị cô lập này.
+* **Vô hiệu hóa WDigest:**
+    Trên các hệ điều hành Windows cũ (hoặc bị cấu hình sai), WDigest có thể lưu trữ mật khẩu dưới dạng cleartext trong bộ nhớ. Cần đảm bảo registry key UseLogonCredential (tại HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest) được thiết lập giá trị là 0.
+
+#### Thu hẹp Bề mặt Tấn công
+
+* **Bật Windows Defender ASR Rules:**
+    Bạn có thể đề xuất triển khai các luật ASR của Microsoft, cụ thể là luật "Block credential stealing from the Windows local security authority subsystem" (Mã GUID: 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2). Luật này được thiết kế chuyên biệt để ngăn chặn các tiến trình khả nghi cố gắng tương tác với bộ nhớ của LSASS.
+* **Hạn chế quyền SeDebugPrivilege:**
+    Kẻ tấn công thường lạm dụng đặc quyền Debug (SeDebugPrivilege) để lấy memory dump của các tiến trình hệ thống. Cần áp dụng nguyên tắc đặc quyền tối thiểu (Principle of Least Privilege), cấu hình Group Policy để gỡ bỏ quyền này khỏi các nhóm người dùng không cần thiết (kể cả Local Administrator, nếu có thể).
