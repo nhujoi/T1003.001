@@ -40,12 +40,15 @@ rundll32.exe C:\windows\System32\comsvcs.dll, MiniDump PID C:\Windows\Temp\lsass
 
 Sau khi lấy được file .dmp, kẻ tấn công sẽ tải file này về máy tính cá nhân của kẻ tấn công. Tại đây, kẻ tấn công dùng Mimikatz chạy các lệnh như sekurlsa::Minidump (nạp file dump) và sekurlsa::logonPasswords (lấy mật khẩu).
 
-![alt text](./images/image.png)
+![alt text](./images/image-10.png)
 
 Sau khi có mật khẩu dưới dạng hash thì kẻ tấn công có thể dùng johntheripper để đoán 
 
+![alt text](./images/image.png)
+
 ![alt text](./images/image-1.png)
 
+Vậy trong trường hợp này kẻ tấn công đã đoán được mật khẩu là "password"
 
 ## 4. Phân tích Dấu hiệu nhận biết 
 Hệ thống ghi log Sysmon được sử dụng để bắt các sự kiện ở mức độ hệ thống. Qua quá trình mô phỏng, ba loại Event ID chính đã được ghi nhận:
