@@ -95,23 +95,32 @@ Sau khi mô phỏng tấn công lại thì đã bắt được hành vi lsass tr
 ![alt text](./images/image-9.png)
 
 ## 6. Kết luận và hướng đề xuất chống tấn công:
-Bài báo cao đã thực hiện mô phỏng thành công kỹ thuật OS Credential Dumping (T1003.001) và xây dựng được năng lực giám sát, phát hiện cảnh báo trên hệ thống Wazuh thông qua việc phân tích log Sysmon.
+Bài báo cáo đã thực hiện mô phỏng thành công kỹ thuật OS Credential Dumping (T1003.001) và xây dựng được năng lực giám sát, phát hiện cảnh báo trên hệ thống Wazuh thông qua việc phân tích log Sysmon.
 
 Do giới hạn của môi trường thực nghiệm (Lab cá nhân), hệ thống không được triển khai các phần mềm doanh nghiệp như hệ thống Antivirus (AV/EDR), công cụ sao lưu (Backup Agents) hay phần mềm giám sát (Monitor). Trong môi trường thực tế, các phần mềm hợp lệ này thường xuyên phải truy cập vào bộ nhớ lsass.exe để thực thi tác vụ, dẫn đến việc Rule 100050 có thể sinh ra một lượng lớn cảnh báo giả. 
 
 
 ### Đề xuất phòng chống
-#### Cấu hình bảo mật ở cấp độ Hệ điều hành 
 
-* **Kích hoạt LSA Protection:** Đây là một trong những biện pháp cơ bản và hiệu quả nhất. Khi cấu hình LSASS chạy dưới dạng Protected Process Light, Windows sẽ ngăn chặn các tiến trình không có chữ ký điện tử hợp lệ chèn mã hoặc yêu cầu quyền truy cập mức cao vào `lsass.exe`. Kẻ tấn công dùng Mimikatz thông thường sẽ bị chặn lại ngay bước này.
-* **Sử dụng Windows Defender Credential Guard:**
-    Tính năng này sử dụng công nghệ ảo hóa dựa trên phần cứng để cô lập bộ nhớ chứa thông tin xác thực. Ngay cả khi kẻ tấn công có leo thang đặc quyền lên mức SYSTEM hoặc vô hiệu hóa được các phần mềm diệt virus, chúng cũng không thể đọc được cleartext password hay NTLM hash từ vùng nhớ bị cô lập này.
-* **Vô hiệu hóa WDigest:**
-    Trên các hệ điều hành Windows cũ (hoặc bị cấu hình sai), WDigest có thể lưu trữ mật khẩu dưới dạng cleartext trong bộ nhớ. Cần đảm bảo registry key UseLogonCredential (tại HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SecurityProviders\WDigest) được thiết lập giá trị là 0.
+Để đối phó với kỹ thuật LSASS Memory Dumping (T1003.001) và giải quyết trọn vẹn bài toán bảo mật hệ thống, cần áp dụng chiến lược phòng thủ theo chiều sâu dựa trên khung tiêu chuẩn MITRE ATT&CK. Dưới đây là các biện pháp giảm thiểu cụ thể:
 
-#### Thu hẹp Bề mặt Tấn công
+#### Bảo vệ toàn vẹn tiến trình và bộ nhớ
+* **Privileged Process Integrity (M1025):** Kích hoạt tính năng Protected Process Light cho LSA trên Windows 8.1 và Windows Server 2012 R2 trở lên. Thiết lập này yêu cầu các tiến trình phải có chữ ký số hợp lệ từ Microsoft mới có thể tương tác hoặc đọc bộ nhớ của lsass.exe.
+* **Credential Access Protection (M1043):**  Triển khai tính năng Windows Defender Credential Guard. Công nghệ này sử dụng tính năng ảo hóa dựa trên phần cứng để cô lập bộ nhớ chứa LSA secrets. Cần lưu ý giải pháp này yêu cầu phần cứng/firmware tương thích và không được bật sẵn theo mặc định.
+* **Operating System Configuration (M1028):** 
+  * Vô hiệu hóa xác thực WDigest (thông qua registry) để ngăn Windows lưu trữ mật khẩu dưới dạng cleartext trong bộ nhớ RAM.
+  * Xem xét việc hạn chế hoặc vô hiệu hóa hoàn toàn giao thức NTLM trong môi trường domain nếu có thể, chuyển sang ưu tiên sử dụng Kerberos.
 
-* **Bật Windows Defender ASR Rules:**
-    Bạn có thể đề xuất triển khai các luật ASR của Microsoft, cụ thể là luật "Block credential stealing from the Windows local security authority subsystem" (Mã GUID: 9e6c4e1f-7d60-472f-ba1a-a39ef669e4b2). Luật này được thiết kế chuyên biệt để ngăn chặn các tiến trình khả nghi cố gắng tương tác với bộ nhớ của LSASS.
-* **Hạn chế quyền SeDebugPrivilege:**
-    Kẻ tấn công thường lạm dụng đặc quyền Debug (SeDebugPrivilege) để lấy memory dump của các tiến trình hệ thống. Cần áp dụng nguyên tắc đặc quyền tối thiểu (Principle of Least Privilege), cấu hình Group Policy để gỡ bỏ quyền này khỏi các nhóm người dùng không cần thiết (kể cả Local Administrator, nếu có thể).
+#### Ngăn chặn hành vi trên thiết bị đầu cuối
+* **Behavior Prevention on Endpoint (M1040):** Bật các quy tắc Giảm thiểu bề mặt tấn công (Attack Surface Reduction - ASR) trên Windows 10/11. Cụ thể, quản trị viên cần kích hoạt rule "Block credential stealing from the Windows local security authority subsystem" để tự động chặn các hành vi khả nghi cố gắng trích xuất dữ liệu từ LSASS.
+
+#### Quản lý đặc quyền và tài khoản 
+* **Active Directory Configuration (M1015):** Đưa các tài khoản quản trị quan trọng vào nhóm bảo mật "Protected Users" trong Active Directory. Điều này giúp giới hạn việc hệ thống tự động lưu trữ thông tin xác thực cleartext của các user này trên máy trạm. Đồng thời, quản lý chặt chẽ danh sách kiểm soát truy cập đối với các quyền nhạy cảm như "Replicating Directory Changes All".
+* **Privileged Account Management (M1026):** Không thêm các tài khoản domain (đặc biệt là tài khoản admin) vào nhóm Local Administrator trên các máy trạm trừ khi được kiểm soát cực kỳ gắt gao. Nên áp dụng mô hình phân cấp quản trị để giới hạn việc sử dụng tài khoản đặc quyền chéo giữa các hệ thống.
+* **Password Policies (M1027):** Đảm bảo các tài khoản quản trị viên cục bộ có mật khẩu phức tạp và hoàn toàn duy nhất cho từng máy (khuyến nghị sử dụng giải pháp như Microsoft LAPS).
+* **User Training (M1017):** Đào tạo người dùng và quản trị viên không sử dụng chung một mật khẩu cho nhiều tài khoản và hệ thống khác nhau để giới hạn mức độ ảnh hưởng nếu một tài khoản bị lộ lọt.
+
+#### Tối ưu hóa hệ thống giám sát 
+Để khắc phục hạn chế về cảnh báo giả (False Positives) do Rule 100050 sinh ra (đã đề cập trong phần kết luận), hệ thống cần được tinh chỉnh lại:
+* **Xây dựng Baseline:** Giám sát hệ thống trong trạng thái bình thường để lập danh sách trắng các tiến trình hợp lệ thường xuyên cần quyền truy cập LSASS (như Antivirus, công cụ Backup).
+* **Nâng cấp Rule trên Wazuh:** Bổ sung điều kiện loại trừ. Cảnh báo sẽ chỉ kích hoạt nếu TargetImage là lsass.exe, GrantedAccess là mức quyền nguy hiểm, và SourceImage (tiến trình gọi) không nằm trong Whitelist đã được phê duyệt.
